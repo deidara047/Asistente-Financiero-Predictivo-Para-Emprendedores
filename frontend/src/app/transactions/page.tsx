@@ -7,12 +7,6 @@ export const metadata: Metadata = {
 };
 
 export default function TransactionsPage() {
-  // Temporal: función vacía (se implementará con Context/Server Actions)
-  const addTransaction = async (transaction: any) => {
-    console.log('Transaction added:', transaction);
-    return { success: true, message: 'Transacción agregada' };
-  };
-
   return (
     <div className="space-y-8">
       <div className="text-center mb-8">
@@ -26,7 +20,7 @@ export default function TransactionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1">
           <div className="sticky top-6">
-            <TransactionForm addTransaction={addTransaction} />
+            <TransactionForm />
           </div>
         </div>
         <div className="lg:col-span-2">
