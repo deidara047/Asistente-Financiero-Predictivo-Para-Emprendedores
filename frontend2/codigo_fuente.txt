@@ -1,0 +1,2905 @@
+./eslint.config.js:
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs['recommended-latest'],
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+    },
+  },
+])
+
+
+
+./index.html:
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+
+
+./package.json:
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.9.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "@unhead/react": "^2.0.17",
+    "axios": "^1.12.2",
+    "chart.js": "^4.5.0",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
+    "react": "^19.2.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.2.0",
+    "react-icons": "^5.5.0",
+    "react-redux": "^9.2.0",
+    "react-router-dom": "^7.9.3",
+    "sweetalert2": "^11.24.0",
+    "sweetalert2-react-content": "^5.1.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "@types/chart.js": "^2.9.41",
+    "@types/node": "^24.6.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/react-redux": "^7.1.34",
+    "@vitejs/plugin-react-swc": "^4.1.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.36.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.22",
+    "globals": "^16.4.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.45.0",
+    "vite": "^7.1.7"
+  }
+}
+
+
+
+./src/App.css:
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+
+
+./src/App.tsx:
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import DashboardPage from './pages/DashboardPage';
+import TransactionsPage from './pages/TransactionsPage';
+import ReportsPage from './pages/ReportsPage';
+import AboutPage from './pages/AboutPage';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/about" element={<AboutPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+
+./src/components/Alerts.tsx:
+import React, { useEffect, useState } from 'react';
+import { FaExclamationTriangle } from 'react-icons/fa';
+import { useDispatch, useSelector } from 'react-redux';
+import { setAlertsOpen } from '../store/slices/alertSlice';
+import type { RootState } from '../store';
+import axios from 'axios';
+
+// API base URL
+const API_BASE = 'http://localhost:5000';
+
+interface Alert {
+  type: string;
+  severity: 'critica' | 'alta' | 'media' | 'baja';
+  message: string;
+}
+
+const Alerts: React.FC = () => {
+  const dispatch = useDispatch();
+  const isAlertsOpen = useSelector((state: RootState) => state.alerts.isAlertsOpen);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`${API_BASE}/alerts`);
+        setAlerts(res.data.alerts || []);
+      } catch (err: any) {
+        setAlerts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAlerts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="mb-6 flex flex-col items-center justify-center p-8 bg-white rounded-xl shadow-lg border-2 border-gray-100">
+        <div className="relative">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-500 border-t-transparent absolute top-0 left-0"></div>
+        </div>
+        <p className="mt-4 text-gray-600 font-medium">Cargando alertas...</p>
+      </div>
+    );
+  }
+
+  if (!isAlertsOpen || alerts.length === 0) {
+    return null;
+  }
+
+  const severityConfig = {
+    critica: {
+      bg: 'bg-gradient-to-r from-red-50 to-red-100',
+      text: 'text-red-800',
+      border: 'border-red-300',
+      icon: 'text-red-500',
+      badge: 'bg-red-500 text-white',
+      emoji: '🚨',
+      label: 'Crítica'
+    },
+    alta: {
+      bg: 'bg-gradient-to-r from-orange-50 to-orange-100',
+      text: 'text-orange-800',
+      border: 'border-orange-300',
+      icon: 'text-orange-500',
+      badge: 'bg-orange-500 text-white',
+      emoji: '⚠️',
+      label: 'Alta'
+    },
+    media: {
+      bg: 'bg-gradient-to-r from-yellow-50 to-yellow-100',
+      text: 'text-yellow-800',
+      border: 'border-yellow-300',
+      icon: 'text-yellow-500',
+      badge: 'bg-yellow-500 text-white',
+      emoji: '⚡',
+      label: 'Media'
+    },
+    baja: {
+      bg: 'bg-gradient-to-r from-gray-50 to-gray-100',
+      text: 'text-gray-800',
+      border: 'border-gray-300',
+      icon: 'text-gray-500',
+      badge: 'bg-gray-500 text-white',
+      emoji: 'ℹ️',
+      label: 'Baja'
+    },
+  };
+
+  const handleClose = () => {
+    dispatch(setAlertsOpen(false));
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="bg-gradient-to-br from-yellow-50 via-orange-50 to-red-50 p-6 rounded-xl shadow-lg border-2 border-yellow-300 relative overflow-hidden">
+        {/* Decoración de fondo */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-200 rounded-full opacity-10 -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-200 rounded-full opacity-10 -ml-24 -mb-24"></div>
+        
+        {/* Header (Refactorizado con Flexbox y Space-Between) */}
+        <div className="flex items-start justify-between mb-6 relative z-10">
+          
+          {/* Lado Izquierdo: Icono y Título */}
+          <div className="flex items-center">
+            <div className="bg-yellow-500 rounded-full p-3 mr-4 shadow-md flex-shrink-0">
+              <FaExclamationTriangle className="text-white" size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                Alertas Financieras
+                <span className="text-sm font-semibold bg-yellow-500 text-white px-3 py-1 rounded-full">
+                  {alerts.length}
+                </span>
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Revisa estas notificaciones importantes sobre tu actividad financiera
+              </p>
+            </div>
+          </div>
+
+          {/* Lado Derecho: Botón de Cerrar */}
+          <button
+            onClick={handleClose}
+            aria-label="Cerrar alertas"
+            // Estilos simples: padding para área de click y efecto de hover sutil.
+            // Los márgenes negativos compensan el padding para que se alinee visualmente con el borde del contenedor.
+            className="p-2 -mr-2 -mt-1 text-gray-500 hover:text-gray-900 transition-colors cursor-pointer"
+          >
+            <span className="text-4xl font-light leading-none">&times;</span>
+          </button>
+
+        </div>
+
+        {/* Lista de alertas */}
+        <div className="max-h-96 overflow-y-auto space-y-3 relative z-10 pr-2">
+          {alerts.map((alert, index) => {
+            const config = severityConfig[alert.severity] || severityConfig.baja;
+            return (
+              <div
+                key={index}
+                className={`${config.bg} ${config.border} border-2 rounded-xl p-4 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1`}
+                style={{
+                  animation: `slideIn 0.4s ease-out ${index * 0.1}s both`
+                }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className={`${config.badge} rounded-full p-3 shadow-md flex items-center justify-center`}>
+                      <span className="text-2xl">{config.emoji}</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`${config.badge} text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide shadow-sm`}>
+                        {config.label}
+                      </span>
+                      <span className="text-xs text-gray-500 font-medium">
+                        {alert.type}
+                      </span>
+                    </div>
+                    <p className={`${config.text} font-medium leading-relaxed`}>
+                      {alert.message}
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <FaExclamationTriangle className={`${config.icon}`} size={20} />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <style>{`
+          @keyframes slideIn {
+            from {
+              opacity: 0;
+              transform: translateX(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+};
+
+export default Alerts;
+
+
+./src/components/Charts/BarChart.tsx:
+import React from 'react';
+import { Bar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+interface BarChartProps {
+  incomes: number;
+  expenses: number;
+}
+
+const BarChart: React.FC<BarChartProps> = ({ incomes, expenses }) => {
+  const data = {
+    labels: ['Mes Actual'],
+    datasets: [
+      { label: 'Ingresos', data: [incomes], backgroundColor: 'rgba(75, 192, 192, 0.6)' },
+      { label: 'Gastos', data: [expenses], backgroundColor: 'rgba(255, 99, 132, 0.6)' },
+    ],
+  };
+
+  return <Bar data={data} className="max-w-md mx-auto" />;
+};
+
+export default BarChart;
+
+
+./src/components/Charts/LineChart.tsx:
+import React from 'react';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+interface LineChartProps {
+  monthlyExpenses: number[];
+}
+
+const LineChart: React.FC<LineChartProps> = ({ monthlyExpenses }) => {
+  const data = {
+    labels: ['Mes 1', 'Mes 2', 'Mes 3'],
+    datasets: [
+      { label: 'Gastos Mensuales', data: monthlyExpenses, borderColor: 'rgba(153, 102, 255, 1)', fill: false },
+    ],
+  };
+
+  return <Line data={data} className="max-w-md mx-auto" />;
+};
+
+export default LineChart;
+
+
+./src/components/Charts/PieChart.tsx:
+import React from 'react';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+interface PieChartProps {
+  categories: { [key: string]: number };
+}
+
+const PieChart: React.FC<PieChartProps> = ({ categories }) => {
+  const data = {
+    labels: Object.keys(categories),
+    datasets: [
+      {
+        data: Object.values(categories),
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF'],
+      },
+    ],
+  };
+
+  return <Pie data={data} className="max-w-md mx-auto" />;
+};
+
+export default PieChart;
+
+
+./src/components/Dashboard.tsx:
+import React from 'react';
+import type { Transaction } from '../types';
+import BarChart from './Charts/BarChart';
+import PieChart from './Charts/PieChart';
+import LineChart from './Charts/LineChart';
+
+// Mock data para demo; reemplaza con cálculos reales
+const mockIncomes = 5000;
+const mockExpenses = 3000;
+const mockCategories = { Transporte: 1000, Alimentación: 800, Entretenimiento: 500, Servicios: 400, Otros: 300 };
+const mockMonthlyExpenses = [2000, 2500, 3000];
+
+interface DashboardProps {
+  transactions: Transaction[];
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ transactions }) => {
+  // Aquí calcularías estadísticas reales basadas en transactions
+  const totalIncomes = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <p>Ingresos Totales: {totalIncomes}</p>
+      <p>Gastos Totales: {totalExpenses}</p>
+      <BarChart incomes={mockIncomes} expenses={mockExpenses} />
+      <PieChart categories={mockCategories} />
+      <LineChart monthlyExpenses={mockMonthlyExpenses} />
+    </div>
+  );
+};
+
+export default Dashboard;
+
+
+./src/components/Layout.tsx:
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Navbar from './Navbar';
+import Alerts from './Alerts';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
+
+const Layout: React.FC = () => {
+  // No necesitamos pasar transactions ya que Alerts maneja su propia lógica
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900 p-6">
+      <div className="max-w-6xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-extrabold text-primary tracking-wide">FinSight</h1>
+          <p className="text-sm text-secondary">Control Financiero Personal</p>
+        </header>
+        <Navbar />
+        <Alerts />
+        <main className="mt-4">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default Layout;
+
+
+./src/components/Navbar.tsx:
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+
+const Navbar: React.FC = () => {
+  return (
+    <nav className="flex justify-center space-x-6 bg-white p-4 rounded-xl shadow-md mb-8">
+      <NavLink 
+        to="/" 
+        className={({ isActive }) => 
+          `px-4 py-2 text-primary hover:bg-blue-50 rounded-md transition-all ${isActive ? 'font-bold bg-blue-100' : ''}`
+        }
+      >
+        Dashboard
+      </NavLink>
+      <NavLink 
+        to="/transactions" 
+        className={({ isActive }) => 
+          `px-4 py-2 text-primary hover:bg-blue-50 rounded-md transition-all ${isActive ? 'font-bold bg-blue-100' : ''}`
+        }
+      >
+        Transacciones
+      </NavLink>
+      <NavLink 
+        to="/reports" 
+        className={({ isActive }) => 
+          `px-4 py-2 text-primary hover:bg-blue-50 rounded-md transition-all ${isActive ? 'font-bold bg-blue-100' : ''}`
+        }
+      >
+        Reportes
+      </NavLink>
+      <NavLink 
+        to="/about" 
+        className={({ isActive }) => 
+          `px-4 py-2 text-primary hover:bg-blue-50 rounded-md transition-all ${isActive ? 'font-bold bg-blue-100' : ''}`
+        }
+      >
+        Acerca de
+      </NavLink>
+    </nav>
+  );
+};
+
+export default Navbar;
+
+
+./src/components/Reports.tsx:
+import React from 'react';
+import type { Transaction } from '../types';
+
+// Mock para demo; calcula reales basados en transactions
+interface ReportsProps {
+  transactions: Transaction[];
+}
+
+const Reports: React.FC<ReportsProps> = ({ transactions }) => {
+  // Ejemplo de cálculos
+  const monthlyReport = 'Resumen: Ingresos 5000, Gastos 3000, Ahorro 2000';
+  const comparativeReport = 'Gastos este mes: +10% vs anterior';
+  const habitsReport = 'Días con más gasto: Lunes y Viernes';
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold">Reportes</h1>
+      <h2 className="text-lg font-semibold">Reporte Mensual</h2>
+      <p>{monthlyReport}</p>
+      <h2 className="text-lg font-semibold">Reporte Comparativo</h2>
+      <p>{comparativeReport}</p>
+      <h2 className="text-lg font-semibold">Reporte de Hábitos</h2>
+      <p>{habitsReport}</p>
+    </div>
+  );
+};
+
+export default Reports;
+
+
+./src/components/TransactionForm.tsx:
+import React, { useState } from 'react';
+import Swal from 'sweetalert2';
+import withReactContent from 'sweetalert2-react-content';
+import type { Transaction } from '../types';
+
+interface TransactionFormProps {
+  addTransaction: (transaction: Transaction) => void;
+}
+
+const TransactionForm: React.FC<TransactionFormProps> = ({ addTransaction }) => {
+  const [amount, setAmount] = useState<number>(0);
+  const [description, setDescription] = useState<string>('');
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const MySwal = withReactContent(Swal);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (amount <= 0 || !description) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'El monto debe ser mayor a 0 y la descripción es obligatoria.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    const newTransaction: Omit<Transaction, 'id' | 'category'> = {
+      amount,
+      description,
+      date,
+      type,
+    };
+    addTransaction({ ...newTransaction, id: Date.now(), category: 'Pendiente' });
+
+    try {
+      const API_BASE = 'http://localhost:5000';
+      const res = await fetch(`${API_BASE}/transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: newTransaction.type === 'income' ? 'ingreso' : 'gasto',
+          amount: newTransaction.amount,
+          description: newTransaction.description,
+          date: newTransaction.date,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to add transaction');
+      }
+      MySwal.fire({
+        icon: 'success',
+        title: '¡Éxito!',
+        text: 'Transacción agregada correctamente.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
+        timer: 2000,
+      });
+
+      setAmount(0);
+      setDescription('');
+    } catch (error) {
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Ocurrió un error al agregar la transacción. Intenta de nuevo.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
+      });
+      console.error('Error adding transaction:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || value === '0') {
+      setAmount(0);
+    } else {
+      const numValue = parseFloat(value) || 0;
+      setAmount(numValue >= 0 ? numValue : 0);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
+      {/* Encabezado del formulario */}
+      <div className="mb-6 pb-4 border-b-2 border-blue-100">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <span className="text-3xl">📝</span>
+          Registrar Transacción
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">Completa los datos de tu movimiento financiero</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Tipo de transacción */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Tipo de transacción
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setType('income')}
+              disabled={isLoading}
+              className={`relative py-4 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                type === 'income'
+                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg scale-105 ring-4 ring-green-200'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-2xl">{type === 'income' ? '💰' : '💵'}</span>
+                <span>Ingreso</span>
+              </div>
+              {type === 'income' && (
+                <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                  <span className="text-green-600 text-xs">✓</span>
+                </div>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('expense')}
+              disabled={isLoading}
+              className={`relative py-4 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                type === 'expense'
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg scale-105 ring-4 ring-red-200'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-2xl">{type === 'expense' ? '💸' : '💳'}</span>
+                <span>Gasto</span>
+              </div>
+              {type === 'expense' && (
+                <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                  <span className="text-red-600 text-xs">✓</span>
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Monto */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            💵 Monto
+          </label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 text-xl font-bold">
+              $
+            </span>
+            <input
+              type="number"
+              value={amount === 0 ? '' : amount}
+              onChange={handleAmountChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              required
+              disabled={isLoading}
+              className="w-full py-4 pl-12 pr-4 text-lg font-semibold border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+
+        {/* Descripción */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            📋 Descripción
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ej: Compra de supermercado"
+            required
+            disabled={isLoading}
+            className="w-full py-4 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+          />
+        </div>
+
+        {/* Fecha */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            📅 Fecha
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            disabled={isLoading}
+            className="w-full py-4 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+          />
+        </div>
+
+        {/* Botón de envío */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full py-4 px-4 text-white font-bold text-lg rounded-xl transition-all duration-300 flex justify-center items-center ${
+            isLoading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:scale-105 active:scale-95'
+          }`}
+        >
+          {isLoading ? (
+            <>
+              <svg className="animate-spin h-6 w-6 mr-3" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Agregando...
+            </>
+          ) : (
+            <>
+              <span className="mr-2 text-xl">✓</span>
+              Agregar Transacción
+            </>
+          )}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+export default TransactionForm;
+
+
+./src/components/TransactionList.tsx:
+import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { setTransactions } from '../store/slices/transactionSlices';
+import axios from 'axios';
+import { FaAngleDoubleLeft, FaAngleLeft, FaAngleRight, FaAngleDoubleRight } from 'react-icons/fa';
+
+// API base URL
+const API_BASE = 'http://localhost:5000';
+
+// Función de ayuda para formatear la fecha con hora
+const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+    return new Intl.DateTimeFormat('es-ES', options).format(date);
+};
+
+const TransactionList: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const transactions = useSelector((state: RootState) => state.transactions.transactions);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ 
+    key: 'date', 
+    direction: 'desc' 
+  });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get(`${API_BASE}/transactions`);
+        const sortedTransactions = res.data.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        dispatch(setTransactions(sortedTransactions));
+      } catch (err: any) {
+        setError('Error al cargar transacciones. Intenta más tarde.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTransactions();
+  }, [dispatch]);
+
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+
+    const sortedTransactions = [...transactions].sort((a: any, b: any) => {
+        if (key === 'date') {
+            const dateA = new Date(a.date).getTime();
+            const dateB = new Date(b.date).getTime();
+            if (dateA < dateB) return direction === 'asc' ? -1 : 1;
+            if (dateA > dateB) return direction === 'asc' ? 1 : -1;
+            return 0;
+        }
+
+      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    dispatch(setTransactions(sortedTransactions));
+    setCurrentPage(1); // Reset a la primera página al ordenar
+  };
+
+  const filteredTransactions = transactions.filter((t: any) =>
+    t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Cálculos de paginación
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentTransactions = filteredTransactions.slice(indexOfFirstItem, indexOfLastItem);
+
+  // Resetear a página 1 cuando se busca
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1);
+  };
+
+  // Función para generar números de página
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
+  // Estados de loading y error - render completo
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-6 shadow-lg border-2 border-blue-300">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <span className="text-3xl">📋</span>
+            Lista de Transacciones
+          </h2>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center p-16 bg-white rounded-xl shadow-lg border-2 border-gray-100">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-gray-200"></div>
+            <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-500 border-t-transparent absolute top-0 left-0"></div>
+          </div>
+          <p className="mt-6 text-gray-600 font-semibold text-lg">Cargando transacciones...</p>
+          <p className="mt-2 text-gray-400 text-sm">Esto solo tomará un momento</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-6 shadow-lg border-2 border-blue-300">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+            <span className="text-3xl">📋</span>
+            Lista de Transacciones
+          </h2>
+        </div>
+
+        <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-8 text-center shadow-lg">
+          <div className="text-red-500 text-6xl mb-4">⚠️</div>
+          <h3 className="text-xl font-bold text-red-800 mb-2">Error al cargar</h3>
+          <p className="text-red-700 font-medium">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Encabezado */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-6 shadow-lg border-2 border-blue-300">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+              <span className="text-3xl">📋</span>
+              Lista de Transacciones
+            </h2>
+            <p className="text-blue-100 mt-1 text-sm font-medium">
+              {filteredTransactions.length} {filteredTransactions.length === 1 ? 'transacción registrada' : 'transacciones registradas'}
+            </p>
+          </div>
+          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/30">
+            <p className="text-white font-semibold text-sm">Total en tabla</p>
+            <p className="text-white text-xl font-bold">{filteredTransactions.length}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Barra de búsqueda y selector de items por página */}
+      <div className="flex gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[300px]">
+          <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+            <span className="text-gray-400 text-2xl">🔍</span>
+          </div>
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por descripción o categoría..."
+            className="w-full pl-14 pr-12 py-5 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200 placeholder-gray-400 text-gray-700 font-medium"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <span className="text-2xl">✕</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 bg-white rounded-xl border-2 border-gray-200 px-5 py-3 shadow-sm">
+          <span className="text-gray-600 font-medium whitespace-nowrap">Mostrar:</span>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+            className="border-2 border-gray-300 rounded-lg px-3 py-2 font-semibold text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer hover:border-blue-400 transition-colors"
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className="text-gray-500 text-sm">por página</span>
+        </div>
+      </div>
+
+      {/* Tabla de transacciones o mensaje vacío */}
+      {filteredTransactions.length === 0 ? (
+        <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-2 border-blue-200 rounded-xl p-16 text-center shadow-lg">
+          <div className="text-7xl mb-6">📊</div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-3">
+            {searchTerm ? 'No se encontraron resultados' : 'No hay transacciones'}
+          </h3>
+          <p className="text-gray-600 text-lg max-w-md mx-auto">
+            {searchTerm 
+              ? 'Intenta con otros términos de búsqueda o borra el filtro para ver todas las transacciones' 
+              : 'Agrega tu primera transacción para comenzar a llevar el control de tus finanzas'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-100">
+            <div className="max-h-[600px] overflow-y-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 bg-gradient-to-r from-gray-50 to-gray-100 z-10 border-b-2 border-gray-200">
+                  <tr>
+                    <th
+                      className="p-4 text-left font-bold text-gray-700 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 group"
+                      onClick={() => handleSort('date')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">📅</span>
+                        <span>Fecha y Hora</span>
+                        <span className={`ml-1 transition-all duration-200 ${
+                          sortConfig?.key === 'date' ? 'text-blue-600' : 'text-gray-300 opacity-0 group-hover:opacity-100'
+                        }`}>
+                          {sortConfig?.key === 'date' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          {sortConfig?.key !== 'date' && '⇅'}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 text-left font-bold text-gray-700 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 group"
+                      onClick={() => handleSort('description')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">📝</span>
+                        <span>Descripción</span>
+                        <span className={`ml-1 transition-all duration-200 ${
+                          sortConfig?.key === 'description' ? 'text-blue-600' : 'text-gray-300 opacity-0 group-hover:opacity-100'
+                        }`}>
+                          {sortConfig?.key === 'description' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          {sortConfig?.key !== 'description' && '⇅'}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 text-left font-bold text-gray-700 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 group"
+                      onClick={() => handleSort('category')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">🏷️</span>
+                        <span>Categoría</span>
+                        <span className={`ml-1 transition-all duration-200 ${
+                          sortConfig?.key === 'category' ? 'text-blue-600' : 'text-gray-300 opacity-0 group-hover:opacity-100'
+                        }`}>
+                          {sortConfig?.key === 'category' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          {sortConfig?.key !== 'category' && '⇅'}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 text-left font-bold text-gray-700 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 group"
+                      onClick={() => handleSort('amount')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">💵</span>
+                        <span>Monto</span>
+                        <span className={`ml-1 transition-all duration-200 ${
+                          sortConfig?.key === 'amount' ? 'text-blue-600' : 'text-gray-300 opacity-0 group-hover:opacity-100'
+                        }`}>
+                          {sortConfig?.key === 'amount' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          {sortConfig?.key !== 'amount' && '⇅'}
+                        </span>
+                      </div>
+                    </th>
+                    <th
+                      className="p-4 text-left font-bold text-gray-700 cursor-pointer hover:bg-gradient-to-r hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 group"
+                      onClick={() => handleSort('type')}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">📊</span>
+                        <span>Tipo</span>
+                        <span className={`ml-1 transition-all duration-200 ${
+                          sortConfig?.key === 'type' ? 'text-blue-600' : 'text-gray-300 opacity-0 group-hover:opacity-100'
+                        }`}>
+                          {sortConfig?.key === 'type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                          {sortConfig?.key !== 'type' && '⇅'}
+                        </span>
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {currentTransactions.map((t: any, index: number) => (
+                    <tr
+                      key={t.id}
+                      className="hover:bg-gradient-to-r hover:from-blue-50 hover:via-indigo-50 hover:to-purple-50 transition-all duration-300 group"
+                      style={{
+                        animation: `fadeIn 0.4s ease-out ${index * 0.05}s both`
+                      }}
+                    >
+                      <td className="p-4 text-gray-600 font-mono text-sm whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">▸</span>
+                          {formatDateTime(t.date)}
+                        </div>
+                      </td>
+                      <td className="p-4 text-gray-800 font-semibold">{t.description}</td>
+                      <td className="p-4">
+                        <span className="inline-block px-3 py-1.5 bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700 rounded-lg text-sm font-medium border border-gray-200 group-hover:from-gray-200 group-hover:to-gray-100 transition-all shadow-sm">
+                          {t.category}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`font-bold text-lg flex items-center gap-1 ${t.type === 'ingreso' ? 'text-green-600' : 'text-red-600'}`}>
+                          <span className="text-xl">{t.type === 'ingreso' ? '↗' : '↘'}</span>
+                          {t.type === 'ingreso' ? '+' : '-'} ${t.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold shadow-sm border-2 transition-all ${
+                          t.type === 'ingreso' 
+                            ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700 border-green-300' 
+                            : 'bg-gradient-to-r from-red-100 to-red-50 text-red-700 border-red-300'
+                        }`}>
+                          <span className="text-lg">{t.type === 'ingreso' ? '💰' : '💸'}</span>
+                          {t.type === 'ingreso' ? 'Ingreso' : 'Gasto'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Controles de paginación */}
+          {totalPages > 1 && (
+            <div className="bg-gradient-to-br from-white via-blue-50 to-indigo-50 rounded-2xl shadow-xl border-2 border-blue-200 p-6">
+              {/* Info de página */}
+              <div className="text-center mb-5">
+                <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2 rounded-full shadow-md border border-blue-200">
+                  <span className="text-lg">📄</span>
+                  <span className="text-gray-600 text-sm font-medium">
+                    Mostrando <span className="font-bold text-blue-600">{indexOfFirstItem + 1}</span> a{' '}
+                    <span className="font-bold text-blue-600">{Math.min(indexOfLastItem, filteredTransactions.length)}</span> de{' '}
+                    <span className="font-bold text-indigo-600">{filteredTransactions.length}</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Botones de paginación */}
+              <div className="flex items-center justify-center flex-wrap gap-2">
+                {/* Botón Primera Página */}
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className={`p-3 rounded-lg transition-all duration-300 transform ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg hover:scale-110 active:scale-95'
+                  }`}
+                  title="Primera página"
+                >
+                  <FaAngleDoubleLeft className="text-lg" />
+                </button>
+
+                {/* Botón Anterior */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`p-3 rounded-lg transition-all duration-300 transform ${
+                    currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-110 active:scale-95'
+                  }`}
+                  title="Página anterior"
+                >
+                  <FaAngleLeft className="text-lg" />
+                </button>
+
+                {/* Números de página */}
+                <div className="hidden sm:flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-200 shadow-inner">
+                  {getPageNumbers().map((page, index) => (
+                    <React.Fragment key={index}>
+                      {page === '...' ? (
+                        <span className="px-2 text-gray-400 font-bold">•••</span>
+                      ) : (
+                        <button
+                          onClick={() => handlePageChange(page as number)}
+                          className={`min-w-[38px] h-[38px] rounded-lg text-sm font-bold transition-all duration-300 transform ${
+                            currentPage === page
+                              ? 'bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 text-white shadow-lg scale-110 ring-2 ring-purple-300'
+                              : 'bg-white text-gray-700 hover:bg-gradient-to-br hover:from-blue-100 hover:to-indigo-100 hover:text-blue-700 shadow-sm hover:shadow-md hover:scale-105 active:scale-95 border border-gray-200 hover:border-blue-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Selector de página en móvil */}
+                <div className="sm:hidden">
+                  <select
+                    value={currentPage}
+                    onChange={(e) => handlePageChange(Number(e.target.value))}
+                    className="bg-white border border-blue-300 rounded-lg px-3 py-2 text-sm font-semibold text-gray-700 shadow-md focus:ring-2 focus:ring-blue-300 focus:border-blue-500 cursor-pointer"
+                  >
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <option key={page} value={page}>
+                        Página {page}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Botón Siguiente */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`p-3 rounded-lg transition-all duration-300 transform ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white hover:from-indigo-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-110 active:scale-95'
+                  }`}
+                  title="Siguiente página"
+                >
+                  <FaAngleRight className="text-lg" />
+                </button>
+
+                {/* Botón Última Página */}
+                <button
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className={`p-3 rounded-lg transition-all duration-300 transform ${
+                    currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                      : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg hover:scale-110 active:scale-95'
+                  }`}
+                  title="Última página"
+                >
+                  <FaAngleDoubleRight className="text-lg" />
+                </button>
+              </div>
+
+              {/* Indicador de página actual en móvil */}
+              <div className="sm:hidden text-center mt-4">
+                <span className="inline-block bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">
+                  Página {currentPage} de {totalPages}
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default TransactionList;
+
+
+./src/index.css:
+@import "tailwindcss";
+
+body {
+  background-color: #f9fafb;
+  color: #1f2937;
+  font-family: 'Inter', sans-serif;
+}
+
+
+./src/main.tsx:
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import { createHead, UnheadProvider } from '@unhead/react/client'
+import { Provider } from 'react-redux';
+import './index.css'
+import App from './App.tsx'
+import store from './store';
+
+// Crear la instancia de head
+const head = createHead()
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <Provider store={store}>
+      <UnheadProvider head={head}>
+        <App />
+      </UnheadProvider>
+    </Provider>
+  </StrictMode>,
+)
+
+
+
+./src/pages/AboutPage.tsx:
+import React from 'react';
+import { useHead } from '@unhead/react';
+import { FaUsers, FaChartBar, FaShieldAlt, FaLightbulb } from 'react-icons/fa';
+
+const AboutPage: React.FC = () => {
+  useHead({ title: 'FinSight - Acerca de' });
+
+  return (
+    <div className="space-y-8">
+      <h1 className="text-3xl font-bold text-center text-primary tracking-wide">Acerca de FinSight</h1>
+      <div className="max-w-4xl mx-auto">
+        <section className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100 mb-6">
+          <div className="flex items-center mb-4">
+            <FaLightbulb className="text-primary mr-2" size={20} />
+            <h2 className="text-xl font-semibold text-gray-900">Nuestra Misión</h2>
+          </div>
+          <p className="text-secondary text-lg">
+            FinSight es una herramienta de control financiero personal diseñada para empoderar a las personas con educación financiera básica. Automatiza el registro, categorización y análisis de transacciones, ofreciendo gráficos, predicciones simples de gastos y alertas para prevenir excesos. Resolvemos la falta de visibilidad sobre hábitos de gasto, reduciendo el estrés económico y el endeudamiento innecesario.
+          </p>
+        </section>
+
+        <section className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100 mb-6">
+          <div className="flex items-center mb-4">
+            <FaUsers className="text-primary mr-2" size={20} />
+            <h2 className="text-xl font-semibold text-gray-900">Nuestro Equipo</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p><strong>Luis Rodrigo Morales Florián</strong> - Desarrollador Backend (Gestión de datos y CSV)</p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p><strong>Jonathan Alexander Ajbal Cheguén</strong> - Desarrollador de Análisis (Estadísticas y predicciones)</p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p><strong>Derick Fernando Yax Pacheco</strong> - Desarrollador Frontend (Interfaz y visualizaciones)</p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p><strong>Abdiel Fernando José Otzoy Otzín</strong> - Desarrollador de Reportes (Alertas y reportes)</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100 mb-6">
+          <div className="flex items-center mb-4">
+            <FaChartBar className="text-primary mr-2" size={20} />
+            <h2 className="text-xl font-semibold text-gray-900">Impacto y Valor</h2>
+          </div>
+          <ul className="text-secondary text-lg space-y-2 list-disc list-inside">
+            <li>Mejora la educación financiera y reduce el estrés económico.</li>
+            <li>Previene el endeudamiento con alertas tempranas y predicciones.</li>
+            <li>Fomenta el ahorro al mostrar ingresos no gastados.</li>
+            <li>Empodera a familias e individuos con herramientas accesibles.</li>
+          </ul>
+        </section>
+
+        <section className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100">
+          <div className="flex items-center mb-4">
+            <FaShieldAlt className="text-primary mr-2" size={20} />
+            <h2 className="text-xl font-semibold text-gray-900">Consideraciones</h2>
+          </div>
+          <p className="text-secondary text-lg">
+            FinSight es una herramienta de soporte que respeta la privacidad con almacenamiento local en CSV. Requiere disciplina para registrar datos, pero su interfaz intuitiva facilita la adopción. Estamos explorando encriptación y soporte para múltiples monedas en futuras versiones.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+};
+
+export default AboutPage;
+
+
+./src/pages/DashboardPage.tsx:
+import React, { useEffect, useState } from 'react';
+import { useHead } from '@unhead/react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
+import axios from 'axios';
+import { FaMoneyBillWave, FaChartPie, FaCalendarAlt } from 'react-icons/fa'; // Íconos de react-icons
+
+// API base URL
+const API_BASE = 'http://localhost:5000';
+
+const DashboardPage: React.FC = () => {
+  useHead({ title: 'FinSight - Dashboard' });
+
+  const transactions = useSelector((state: RootState) => state.transactions.transactions);
+
+  const [analysis, setAnalysis] = useState<any>(null);
+  const [prediction, setPrediction] = useState<number | null>(null);
+  const [barGraph, setBarGraph] = useState<string | null>(null);
+  const [pieGraph, setPieGraph] = useState<string | null>(null);
+  const [lineGraph, setLineGraph] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const analysisRes = await axios.get(`${API_BASE}/analysis`);
+        setAnalysis(analysisRes.data);
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setAnalysis({ total_income: 0, total_expense: 0, net_gain: 0, avg_monthly_income: 0, avg_monthly_expense: 0, unspent_percentage: 0, expense_comparison: 'N/A', top_category: 'N/A', top_days: [] });
+          setError('Aún no hay datos disponibles. Agrega transacciones para ver análisis.');
+        } else {
+          setError('Error al cargar datos. Intenta más tarde.');
+        }
+      }
+
+      try {
+        const predictionRes = await axios.get(`${API_BASE}/prediction`);
+        setPrediction(predictionRes.data.predicted_expense);
+      } catch (err: any) {
+        if (err.response?.status === 400 || err.response?.status === 404) {
+          setPrediction(0);
+          if (!error) setError('No hay suficientes datos para predicciones.');
+        } else {
+          if (!error) setError('Error al cargar predicción.');
+        }
+      }
+
+      try {
+        const barRes = await axios.get(`${API_BASE}/graphs/bar`, { responseType: 'blob' });
+        setBarGraph(URL.createObjectURL(barRes.data));
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setBarGraph(null);
+          if (!error) setError('No hay datos para gráficos.');
+        } else {
+          if (!error) setError('Error al cargar gráfico de barras.');
+        }
+      }
+
+      try {
+        const pieRes = await axios.get(`${API_BASE}/graphs/pie`, { responseType: 'blob' });
+        setPieGraph(URL.createObjectURL(pieRes.data));
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setPieGraph(null);
+          if (!error) setError('No hay datos para gráficos.');
+        } else {
+          if (!error) setError('Error al cargar gráfico de pastel.');
+        }
+      }
+
+      try {
+        const lineRes = await axios.get(`${API_BASE}/graphs/line`, { responseType: 'blob' });
+        setLineGraph(URL.createObjectURL(lineRes.data));
+      } catch (err: any) {
+        if (err.response?.status === 404) {
+          setLineGraph(null);
+          if (!error) setError('No hay datos para gráficos.');
+        } else {
+          if (!error) setError('Error al cargar gráfico de líneas.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="text-red-600 text-center p-6">{error}</p>;
+  }
+
+  const totalIncomes = analysis?.total_income || 0;
+  const totalExpenses = analysis?.total_expense || 0;
+
+  return (
+    <div className="space-y-8">
+      {/* Fila 1: Ingresos Totales, Gastos Totales, Predicción Próximo Mes */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Ingresos Totales */}
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-green-200">
+          <div className="flex items-center mb-4">
+            <FaMoneyBillWave className="text-green-500 mr-2" size={24} />
+            <h2 className="text-xl font-semibold text-gray-800">Ingresos Totales</h2>
+          </div>
+          <p className="text-3xl font-bold text-green-700">
+            ${totalIncomes.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        {/* Gastos Totales */}
+        <div className="bg-gradient-to-br from-red-50 to-red-100 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-red-200">
+          <div className="flex items-center mb-4">
+            <FaChartPie className="text-red-500 mr-2" size={24} />
+            <h2 className="text-xl font-semibold text-gray-800">Gastos Totales</h2>
+          </div>
+          <p className="text-3xl font-bold text-red-700">
+            ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </p>
+        </div>
+
+        {/* Predicción Próximo Mes */}
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 border border-blue-200">
+          <div className="flex items-center mb-4">
+            <FaCalendarAlt className="text-blue-500 mr-2" size={24} />
+            <h2 className="text-xl font-semibold text-gray-800">Predicción Próximo Mes</h2>
+          </div>
+          <p className="text-3xl font-bold text-blue-700">
+            {prediction !== null
+              ? `$${prediction.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+              : 'No disponible'}
+          </p>
+        </div>
+      </div>
+
+      {/* Fila 2: Gráfico de Pastel, Gráfico de Barras */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Gráfico de Pastel: Distribución de Gastos</h2>
+          {pieGraph ? (
+            <div className="flex justify-center">
+              <img src={pieGraph} alt="Pie Graph" className="max-w-full h-auto" />
+            </div>
+          ) : 'No disponible'}
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Gráfico de Barras: Ingresos vs Gastos</h2>
+          {barGraph ? (
+            <div className="flex justify-center">
+              <img src={barGraph} alt="Bar Graph" className="max-w-full h-auto" />
+            </div>
+          ) : 'No disponible'}
+        </div>
+      </div>
+
+      {/* Fila 3: Gráfico de Líneas */}
+      <div className="grid grid-cols-1">
+        <div className="bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Gráfico de Líneas: Evolución de Gastos</h2>
+          {lineGraph ? (
+            <div className="flex justify-center">
+              <img src={lineGraph} alt="Line Graph" className="max-w-full h-auto" />
+            </div>
+          ) : 'No disponible'}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
+
+
+./src/pages/ReportsPage.tsx:
+import React, { useEffect, useState } from 'react';
+import { useHead } from '@unhead/react';
+import axios from 'axios';
+import { 
+  FaChartPie, 
+  FaChartLine, 
+  FaCalendarAlt, 
+  FaDownload,
+  FaArrowUp,
+  FaArrowDown,
+  FaPiggyBank,
+  FaFileDownload,
+  FaInfoCircle
+} from 'react-icons/fa';
+import { generateMonthlyPDF, generateComparativePDF, generateHabitsPDF } from '../utils/pdfGenerator';
+
+const API_BASE = 'http://localhost:5000';
+
+interface MonthlyReport {
+  income: number;
+  expense: number;
+  savings: number;
+  top_category: string;
+  month?: string;
+  year?: number;
+}
+
+interface ComparativeReport {
+  current_expense: number;
+  prev_expense: number;
+  difference: number;
+}
+
+interface HabitsReport {
+  top_days: number[];
+  repeated_expenses: { [key: string]: number };
+}
+
+const ReportsPage: React.FC = () => {
+  useHead({ title: 'FinSight - Reportes' });
+
+  const [monthly, setMonthly] = useState<MonthlyReport | null>(null);
+  const [comparative, setComparative] = useState<ComparativeReport | null>(null);
+  const [habits, setHabits] = useState<HabitsReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
+
+  // Obtener mes y año actual
+  const getCurrentMonthYear = () => {
+    const now = new Date();
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    return {
+      month: monthNames[now.getMonth()],
+      year: now.getFullYear()
+    };
+  };
+
+  const currentPeriod = getCurrentMonthYear();
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [monthlyRes, comparativeRes, habitsRes] = await Promise.all([
+        axios.get(`${API_BASE}/reports/monthly`).catch(() => ({ data: { income: 0, expense: 0, savings: 0, top_category: 'N/A' } })),
+        axios.get(`${API_BASE}/reports/comparative`).catch(() => ({ data: { current_expense: 0, prev_expense: 0, difference: 0 } })),
+        axios.get(`${API_BASE}/reports/habits`).catch(() => ({ data: { top_days: [], repeated_expenses: {} } }))
+      ]);
+
+      setMonthly(monthlyRes.data);
+      setComparative(comparativeRes.data);
+      setHabits(habitsRes.data);
+    } catch (err) {
+      setError('Error al cargar los reportes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async (reportType: string) => {
+    setDownloadingPDF(reportType);
+    try {
+      switch (reportType) {
+        case 'monthly':
+          // Obtener datos de 12 meses para el PDF
+          const response = await axios.get(`${API_BASE}/reports/monthly-12`);
+          await generateMonthlyPDF(response.data);
+          break;
+        case 'comparative':
+          if (comparative) await generateComparativePDF(comparative);
+          break;
+        case 'habits':
+          if (habits) await generateHabitsPDF(habits);
+          break;
+      }
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF');
+    } finally {
+      setDownloadingPDF(null);
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('es-GT', {
+      style: 'currency',
+      currency: 'GTQ'
+    }).format(amount);
+  };
+
+  const getSavingsColor = (savings: number) => {
+    if (savings > 0) return 'text-green-600';
+    if (savings < 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
+
+  const getDifferenceColor = (diff: number) => {
+    if (diff < 0) return 'text-green-600';
+    if (diff > 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="animate-spin rounded-full h-20 w-20 border-t-4 border-b-4 border-primary mb-4"></div>
+        <p className="text-gray-600 font-medium">Cargando reportes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg shadow-lg">
+          <p className="text-red-700 font-semibold">{error}</p>
+          <button
+            onClick={fetchReports}
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-3">
+            Reportes Financieros
+          </h1>
+          <p className="text-gray-600 text-lg">Análisis detallado de tu situación financiera</p>
+        </div>
+
+        {/* Reports Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Monthly Report */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 p-6">
+              <h2 className="text-2xl font-bold text-white">Reporte Mensual</h2>
+              <p className="text-blue-100 text-sm mt-1">{currentPeriod.month} {currentPeriod.year}</p>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Info banner */}
+              <div className="flex items-start space-x-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <FaInfoCircle className="text-blue-600 mt-0.5 flex-shrink-0" size={16} />
+                <p className="text-xs text-blue-800">
+                  Mostrando datos del mes actual. Para ver el reporte de los últimos 12 meses, descarga el PDF.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
+                <div className="flex items-center space-x-3">
+                  <FaArrowUp className="text-green-600" size={24} />
+                  <span className="text-gray-700 font-medium">Ingresos</span>
+                </div>
+                <span className="text-2xl font-bold text-green-600">
+                  {formatCurrency(monthly?.income || 0)}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl">
+                <div className="flex items-center space-x-3">
+                  <FaArrowDown className="text-red-600" size={24} />
+                  <span className="text-gray-700 font-medium">Gastos</span>
+                </div>
+                <span className="text-2xl font-bold text-red-600">
+                  {formatCurrency(monthly?.expense || 0)}
+                </span>
+              </div>
+
+              <div className={`flex items-center justify-between p-4 ${
+                (monthly?.savings || 0) >= 0 ? 'bg-blue-50' : 'bg-orange-50'
+              } rounded-xl`}>
+                <div className="flex items-center space-x-3">
+                  <FaPiggyBank className={
+                    (monthly?.savings || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'
+                  } size={24} />
+                  <span className="text-gray-700 font-medium">Ahorro</span>
+                </div>
+                <span className={`text-2xl font-bold ${getSavingsColor(monthly?.savings || 0)}`}>
+                  {formatCurrency(monthly?.savings || 0)}
+                </span>
+              </div>
+
+              <div className="mt-6 p-4 bg-gray-50 rounded-xl border-l-4 border-blue-500">
+                <p className="text-sm text-gray-600 mb-1">Categoría más gastada</p>
+                <p className="text-lg font-bold text-gray-900">{monthly?.top_category || 'N/A'}</p>
+              </div>
+
+              <button
+                onClick={() => handleDownloadPDF('monthly')}
+                disabled={downloadingPDF === 'monthly'}
+                className="w-full mt-6 flex cursor-pointer items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloadingPDF === 'monthly' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaDownload size={18} />
+                    <span>Descargar Reporte 12 Meses</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Comparative Report */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6">
+              <h2 className="text-2xl font-bold text-white">Comparativo</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-purple-50 rounded-xl">
+                <p className="text-sm text-gray-600 mb-2">Gastos este mes</p>
+                <p className="text-3xl font-bold text-purple-600">
+                  {formatCurrency(comparative?.current_expense || 0)}
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600 mb-2">Gastos mes anterior</p>
+                <p className="text-2xl font-bold text-gray-700">
+                  {formatCurrency(comparative?.prev_expense || 0)}
+                </p>
+              </div>
+
+              <div className="mt-6 p-5 bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200">
+                <p className="text-sm text-gray-600 mb-2">Diferencia</p>
+                <div className="flex items-center space-x-2">
+                  {(comparative?.difference || 0) < 0 ? (
+                    <FaArrowDown className="text-green-600" size={20} />
+                  ) : (
+                    <FaArrowUp className="text-red-600" size={20} />
+                  )}
+                  <p className={`text-3xl font-bold ${getDifferenceColor(comparative?.difference || 0)}`}>
+                    {formatCurrency(Math.abs(comparative?.difference || 0))}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {(comparative?.difference || 0) < 0 
+                    ? '¡Has reducido tus gastos!' 
+                    : 'Tus gastos han aumentado'}
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleDownloadPDF('comparative')}
+                disabled={downloadingPDF === 'comparative'}
+                className="w-full mt-6 flex cursor-pointer items-center justify-center space-x-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloadingPDF === 'comparative' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaDownload size={18} />
+                    <span>Descargar Reporte</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Habits Report */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div className="bg-gradient-to-r from-pink-500 to-rose-600 p-6">
+              <div className="flex items-center space-x-3">
+                <h2 className="text-2xl font-bold text-white">Hábitos</h2>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="p-4 bg-pink-50 rounded-xl">
+                <p className="text-sm text-gray-600 mb-3 font-medium">Días con más gasto</p>
+                <div className="flex flex-wrap gap-2">
+                  {habits?.top_days && habits.top_days.length > 0 ? (
+                    habits.top_days.map((day, index) => (
+                      <span
+                        key={index}
+                        className="px-4 py-2 bg-pink-600 text-white rounded-full font-bold text-lg shadow-md"
+                      >
+                        {day}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500">N/A</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 bg-rose-50 rounded-xl max-h-64 overflow-y-auto">
+                <p className="text-sm text-gray-600 mb-3 font-medium">Gastos repetidos</p>
+                <div className="space-y-2">
+                  {habits?.repeated_expenses && Object.keys(habits.repeated_expenses).length > 0 ? (
+                    Object.entries(habits.repeated_expenses).map(([desc, count], index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                      >
+                        <span className="text-gray-800 font-medium text-sm truncate max-w-[200px]">
+                          {desc}
+                        </span>
+                        <span className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          {count}x
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-gray-500 text-sm">No hay gastos repetidos</span>
+                  )}
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleDownloadPDF('habits')}
+                disabled={downloadingPDF === 'habits'}
+                className="w-full mt-6 cursor-pointer flex items-center justify-center space-x-2 px-4 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {downloadingPDF === 'habits' ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Generando...</span>
+                  </>
+                ) : (
+                  <>
+                    <FaDownload size={18} />
+                    <span>Descargar Reporte</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Download All Button */}
+        <div className="mt-12 text-center">
+          <button
+            onClick={async () => {
+              setDownloadingPDF('all');
+              try {
+                const monthlyResponse = await axios.get(`${API_BASE}/reports/monthly-12`);
+                await generateMonthlyPDF(monthlyResponse.data);
+                if (comparative) await generateComparativePDF(comparative);
+                if (habits) await generateHabitsPDF(habits);
+              } catch (error) {
+                console.error('Error:', error);
+                alert('Error al generar los PDFs');
+              } finally {
+                setDownloadingPDF(null);
+              }
+            }}
+            disabled={downloadingPDF === 'all'}
+            className="inline-flex items-center space-x-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {downloadingPDF === 'all' ? (
+              <>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+                <span>Generando PDFs...</span>
+              </>
+            ) : (
+              <>
+                <FaFileDownload size={24} />
+                <span>Descargar Todos los Reportes</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ReportsPage;
+
+
+./src/pages/TransactionsPage.tsx:
+import React from 'react';
+import { useHead } from '@unhead/react';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../store';
+import { addTransaction, setTransactions } from '../store/slices/transactionSlices';
+import axios from 'axios';
+import TransactionForm from '../components/TransactionForm';
+import TransactionList from '../components/TransactionList';
+import type { Transaction } from '../types';
+
+// API base URL
+const API_BASE = 'http://localhost:5000';
+
+const TransactionsPage: React.FC = () => {
+  useHead({ title: 'FinSight - Transacciones' });
+
+  const dispatch = useDispatch<AppDispatch>();
+  const transactions = useSelector((state: RootState) => state.transactions.transactions);
+
+  const addTransactionHandler = async (transaction: Transaction) => {
+    try {
+      const res = await axios.post(`${API_BASE}/transaction`, {
+        type: transaction.type === 'income' ? 'ingreso' : 'gasto',
+        amount: transaction.amount,
+        description: transaction.description,
+        date: transaction.date,
+      });
+      dispatch(addTransaction(transaction));
+      // Refresca la lista desde la API
+      const updatedTransactions = await axios.get(`${API_BASE}/transactions`);
+      dispatch(setTransactions(updatedTransactions.data));
+      return { success: true, message: res.data.message }; 
+    } catch (error: any) {
+      console.error('Error adding transaction:', error);
+      return { success: false, message: error.response?.data?.error || 'Ocurrió un error al agregar la transacción.' };
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Hero Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-3">
+            💰 Gestión de Transacciones
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Controla tus ingresos y gastos de manera inteligente
+          </p>
+        </div>
+
+        {/* Layout de dos columnas en desktop, apilado en mobile */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Formulario - Columna izquierda (1/3) */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6">
+              <TransactionForm addTransaction={addTransactionHandler} />
+              
+              {/* Info adicional */}
+              <div className="mt-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">ℹ️</span>
+                  <div>
+                    <h3 className="font-semibold text-blue-900 mb-1">Información</h3>
+                    <p className="text-sm text-blue-700">
+                      Las transacciones se registran con la fecha ingresada y la hora actual de Guatemala (UTC-6).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Estadísticas rápidas */}
+              <div className="mt-4 bg-white rounded-xl shadow-lg p-4 border-2 border-gray-100">
+                <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <span>📊</span> Resumen Rápido
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Total Transacciones:</span>
+                    <span className="font-bold text-gray-800">{transactions.length}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Ingresos:</span>
+                    <span className="font-bold text-green-600">
+                      {transactions.filter((t: any) => t.type === 'ingreso').length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Gastos:</span>
+                    <span className="font-bold text-red-600">
+                      {transactions.filter((t: any) => t.type === 'gasto').length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de transacciones - Columna derecha (2/3) */}
+          <div className="lg:col-span-2">
+            <TransactionList />
+          </div>
+        </div>
+
+        {/* Footer decorativo */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-md border-2 border-gray-100">
+            <span className="text-2xl">✨</span>
+            <span className="text-gray-700 font-medium">FinSight</span>
+            <span className="text-gray-400">|</span>
+            <span className="text-gray-600 text-sm">Tu aliado financiero</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TransactionsPage;
+
+
+./src/store/index.ts:
+import { configureStore } from '@reduxjs/toolkit';
+import transactionsReducer from './slices/transactionSlices';
+import alertsReducer from './slices/alertSlice'; // Nuevo reducer para alertas
+
+const store = configureStore({
+  reducer: {
+    transactions: transactionsReducer,
+    alerts: alertsReducer, // Añadir el reducer de alertas
+  },
+});
+
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
+
+export default store;
+
+
+./src/store/slices/alertSlice.ts:
+import { createSlice } from '@reduxjs/toolkit';
+
+interface AlertsState {
+  isAlertsOpen: boolean;
+}
+
+const initialState: AlertsState = {
+  isAlertsOpen: true, // Estado inicial: alertas visibles al recargar
+};
+
+const alertsSlice = createSlice({
+  name: 'alerts',
+  initialState,
+  reducers: {
+    setAlertsOpen: (state, action: { payload: boolean }) => {
+      state.isAlertsOpen = action.payload;
+    },
+  },
+});
+
+export const { setAlertsOpen } = alertsSlice.actions;
+export default alertsSlice.reducer;
+
+
+./src/store/slices/transactionSlices.ts:
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { Transaction } from '../../types';
+
+interface TransactionsState {
+  transactions: Transaction[];
+}
+
+const initialState: TransactionsState = {
+  transactions: [],
+};
+
+const transactionsSlice = createSlice({
+  name: 'transactions',
+  initialState,
+  reducers: {
+    addTransaction: (state, action: PayloadAction<Transaction>) => {
+      state.transactions.push(action.payload);
+    },
+    setTransactions: (state, action: PayloadAction<Transaction[]>) => {
+      state.transactions = action.payload;
+    },
+    // Puedes agregar más reducers aquí, como removeTransaction o updateTransaction si lo necesitas
+  },
+});
+
+export const { addTransaction, setTransactions } = transactionsSlice.actions;
+export default transactionsSlice.reducer;
+
+
+./src/types/index.ts:
+export interface Transaction {
+  id: number;
+  amount: number;
+  description: string;
+  date: string;
+  type: 'income' | 'expense';
+  category: string;
+}
+
+
+./src/utils/categories.ts:
+const categories: { [key: string]: string[] } = {
+  Transporte: ['uber', 'taxi', 'gasolina', 'bus', 'combustible'],
+  Alimentación: ['supermercado', 'restaurante', 'comida', 'almuerzo', 'cena', 'desayuno'],
+  Entretenimiento: ['cine', 'netflix', 'spotify', 'bar', 'juego', 'música'],
+  Servicios: ['agua', 'luz', 'internet', 'teléfono', 'electricidad'],
+  Otros: [],
+};
+
+export const categorizeTransaction = (description: string): string | null => {
+  const lowerDesc = description.toLowerCase();
+  for (const [category, keywords] of Object.entries(categories)) {
+    if (keywords.some(keyword => lowerDesc.includes(keyword))) {
+      return category;
+    }
+  }
+  return null;
+};
+
+
+./src/utils/pdfGenerator.ts:
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+interface MonthlyData {
+  month: string;
+  year: number;
+  income: number;
+  expense: number;
+  savings: number;
+  top_category: string;
+}
+
+interface Monthly12Report {
+  monthly_data: MonthlyData[];
+  summary: {
+    total_income: number;
+    total_expense: number;
+    total_savings: number;
+    avg_monthly_income: number;
+    avg_monthly_expense: number;
+    avg_monthly_savings: number;
+    savings_rate: number;
+    best_month: {
+      month: string;
+      year: number;
+      savings: number;
+    };
+    worst_month: {
+      month: string;
+      year: number;
+      savings: number;
+    };
+    top_category: string;
+    top_category_amount: number;
+  };
+  period: {
+    start: string;
+    end: string;
+  };
+}
+
+interface ComparativeReport {
+  current_expense: number;
+  prev_expense: number;
+  difference: number;
+}
+
+interface HabitsReport {
+  top_days: number[];
+  repeated_expenses: { [key: string]: number };
+}
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('es-GT', {
+    style: 'currency',
+    currency: 'GTQ',
+    minimumFractionDigits: 2
+  }).format(amount);
+};
+
+const formatDate = (): string => {
+  return new Date().toLocaleDateString('es-GT', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+};
+
+const addHeader = (doc: jsPDF, title: string) => {
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 0, doc.internal.pageSize.width, 40, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FinSight', 20, 18);
+  
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'normal');
+  doc.text(title, 20, 30);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(200, 220, 255);
+  doc.text(formatDate(), doc.internal.pageSize.width - 20, 25, { align: 'right' });
+  
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.line(20, 45, doc.internal.pageSize.width - 20, 45);
+};
+
+const addFooter = (doc: jsPDF) => {
+  const pageCount = doc.getNumberOfPages();
+  const pageHeight = doc.internal.pageSize.height;
+  const pageWidth = doc.internal.pageSize.width;
+  
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(20, pageHeight - 20, pageWidth - 20, pageHeight - 20);
+    
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    doc.text(
+      'Generado por FinSight - Sistema de Gestión Financiera Personal',
+      pageWidth / 2,
+      pageHeight - 12,
+      { align: 'center' }
+    );
+    
+    doc.text(
+      `Página ${i} de ${pageCount}`,
+      pageWidth - 20,
+      pageHeight - 12,
+      { align: 'right' }
+    );
+  }
+};
+
+export const generateMonthlyPDF = async (data: Monthly12Report): Promise<void> => {
+  const doc = new jsPDF();
+  
+  addHeader(doc, 'Reporte Anual - Últimos 12 Meses');
+  
+  doc.setTextColor(0, 0, 0);
+  
+  // Período del reporte
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Período: ${data.period.start} - ${data.period.end}`, 20, 58);
+  
+  // Resumen Ejecutivo
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Resumen Ejecutivo (12 meses)', 20, 70);
+  
+  const startY = 80;
+  
+  // Total Ingresos
+  doc.setFillColor(220, 252, 231);
+  doc.roundedRect(20, startY, 85, 18, 2, 2, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ingresos Totales', 25, startY + 7);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(22, 163, 74);
+  doc.text(formatCurrency(data.summary.total_income), 100, startY + 7, { align: 'right' });
+  
+  // Total Gastos
+  doc.setTextColor(0, 0, 0);
+  doc.setFillColor(254, 226, 226);
+  doc.roundedRect(110, startY, 80, 18, 2, 2, 'F');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Gastos Totales', 115, startY + 7);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(220, 38, 38);
+  doc.text(formatCurrency(data.summary.total_expense), 185, startY + 7, { align: 'right' });
+  
+  // Ahorro Total
+  doc.setTextColor(0, 0, 0);
+  const savingsColor = data.summary.total_savings >= 0 ? [219, 234, 254] : [255, 237, 213];
+  doc.setFillColor(savingsColor[0], savingsColor[1], savingsColor[2]);
+  doc.roundedRect(20, startY + 22, 85, 18, 2, 2, 'F');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Ahorro Total', 25, startY + 29);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(data.summary.total_savings >= 0 ? 37 : 234, data.summary.total_savings >= 0 ? 99 : 88, data.summary.total_savings >= 0 ? 235 : 12);
+  doc.text(formatCurrency(data.summary.total_savings), 100, startY + 29, { align: 'right' });
+  
+  // Tasa de Ahorro
+  doc.setTextColor(0, 0, 0);
+  doc.setFillColor(243, 232, 255);
+  doc.roundedRect(110, startY + 22, 80, 18, 2, 2, 'F');
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text('Tasa de Ahorro', 115, startY + 29);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(109, 40, 217);
+  doc.text(`${data.summary.savings_rate.toFixed(1)}%`, 185, startY + 29, { align: 'right' });
+  
+  // Promedios Mensuales
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Promedios Mensuales', 20, startY + 52);
+  
+  doc.setFillColor(245, 245, 245);
+  doc.roundedRect(20, startY + 58, 170, 30, 2, 2, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ingreso Promedio:', 25, startY + 66);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(data.summary.avg_monthly_income), 70, startY + 66);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text('Gasto Promedio:', 25, startY + 74);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(data.summary.avg_monthly_expense), 70, startY + 74);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ahorro Promedio:', 25, startY + 82);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(data.summary.avg_monthly_savings), 70, startY + 82);
+  
+  // Mejores y Peores Meses
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Análisis de Rendimiento', 20, startY + 102);
+  
+  // Mejor Mes
+  doc.setFillColor(220, 252, 231);
+  doc.roundedRect(20, startY + 108, 80, 22, 2, 2, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 163, 74);
+  doc.text('✓ Mejor Mes', 25, startY + 115);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${data.summary.best_month.month} ${data.summary.best_month.year}`, 25, startY + 121);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 163, 74);
+  doc.text(formatCurrency(data.summary.best_month.savings), 95, startY + 121, { align: 'right' });
+  
+  // Peor Mes
+  doc.setTextColor(0, 0, 0);
+  doc.setFillColor(254, 226, 226);
+  doc.roundedRect(110, startY + 108, 80, 22, 2, 2, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(220, 38, 38);
+  doc.text('✗ Peor Mes', 115, startY + 115);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.text(`${data.summary.worst_month.month} ${data.summary.worst_month.year}`, 115, startY + 121);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(220, 38, 38);
+  doc.text(formatCurrency(data.summary.worst_month.savings), 185, startY + 121, { align: 'right' });
+  
+  // Categoría más gastada
+  doc.setTextColor(0, 0, 0);
+  doc.setFillColor(255, 243, 224);
+  doc.roundedRect(20, startY + 135, 170, 18, 2, 2, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Categoría con mayor gasto:', 25, startY + 142);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${data.summary.top_category}`, 85, startY + 142);
+  doc.text(formatCurrency(data.summary.top_category_amount), 185, startY + 142, { align: 'right' });
+  
+  // Nueva página para la tabla detallada
+  doc.addPage();
+  addHeader(doc, 'Detalle Mensual - Últimos 12 Meses');
+  
+  // Crear tabla con datos mensuales
+  const tableData = data.monthly_data.map(month => [
+    `${month.month} ${month.year}`,
+    formatCurrency(month.income),
+    formatCurrency(month.expense),
+    formatCurrency(month.savings),
+    month.top_category
+  ]);
+  
+  autoTable(doc, {
+    startY: 55,
+    head: [['Mes', 'Ingresos', 'Gastos', 'Ahorro', 'Top Categoría']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: [59, 130, 246],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 10
+    },
+    bodyStyles: {
+      fontSize: 9
+    },
+    columnStyles: {
+      0: { cellWidth: 35 },
+      1: { cellWidth: 35, halign: 'right' },
+      2: { cellWidth: 35, halign: 'right' },
+      3: { cellWidth: 35, halign: 'right' },
+      4: { cellWidth: 50 }
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250]
+    },
+    margin: { left: 20, right: 20 }
+  });
+  
+  // Recomendaciones
+  const recY = (doc as any).lastAutoTable.finalY + 15;
+  
+  doc.setFillColor(250, 245, 255);
+  doc.roundedRect(20, recY, 170, 60, 3, 3, 'F');
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(109, 40, 217);
+  doc.text('Recomendaciones Financieras', 25, recY + 12);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  
+  if (data.summary.total_savings < 0) {
+    doc.text('• Tus gastos superan tus ingresos. Es urgente revisar y reducir gastos.', 25, recY + 22);
+    doc.text('• Identifica gastos innecesarios y establece un presupuesto estricto.', 25, recY + 30);
+    doc.text('• Busca oportunidades para aumentar tus ingresos.', 25, recY + 38);
+  } else if (data.summary.savings_rate < 10) {
+    doc.text('• Tu tasa de ahorro es muy baja (menos del 10%).', 25, recY + 22);
+    doc.text('• Intenta reducir gastos en tu categoría principal: ' + data.summary.top_category, 25, recY + 30);
+    doc.text('• Establece como meta alcanzar al menos 20% de ahorro.', 25, recY + 38);
+  } else if (data.summary.savings_rate < 20) {
+    doc.text('• Tu tasa de ahorro está por debajo del 20% recomendado.', 25, recY + 22);
+    doc.text('• Vas bien, pero hay espacio para mejorar tus finanzas.', 25, recY + 30);
+    doc.text('• Analiza tus gastos en ' + data.summary.top_category + ' para optimizar.', 25, recY + 38);
+  } else {
+    doc.text('• ¡Excelente! Mantienes una tasa de ahorro saludable.', 25, recY + 22);
+    doc.text('• Continúa con tus buenos hábitos financieros.', 25, recY + 30);
+    doc.text('• Considera invertir tus ahorros para hacerlos crecer.', 25, recY + 38);
+  }
+  
+  addFooter(doc);
+  doc.save(`FinSight_Reporte_12_Meses_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+export const generateComparativePDF = async (data: ComparativeReport): Promise<void> => {
+  const doc = new jsPDF();
+  
+  addHeader(doc, 'Reporte Comparativo');
+  
+  doc.setTextColor(0, 0, 0);
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Comparación Mensual de Gastos', 20, 60);
+  
+  const barY = 75;
+  const barHeight = 80;
+  const maxAmount = Math.max(data.current_expense, data.prev_expense);
+  
+  const prevHeight = (data.prev_expense / maxAmount) * barHeight;
+  doc.setFillColor(167, 139, 250);
+  doc.roundedRect(40, barY + barHeight - prevHeight, 50, prevHeight, 2, 2, 'F');
+  doc.setFontSize(10);
+  doc.text('Mes Anterior', 65, barY + barHeight + 10, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(data.prev_expense), 65, barY + barHeight + 18, { align: 'center' });
+  
+  const currHeight = (data.current_expense / maxAmount) * barHeight;
+  doc.setFillColor(139, 92, 246);
+  doc.roundedRect(120, barY + barHeight - currHeight, 50, currHeight, 2, 2, 'F');
+  doc.setFont('helvetica', 'normal');
+  doc.text('Mes Actual', 145, barY + barHeight + 10, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.text(formatCurrency(data.current_expense), 145, barY + barHeight + 18, { align: 'center' });
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Análisis de Variación', 20, 190);
+  
+  const diffPercentage = data.prev_expense > 0 
+    ? ((data.difference / data.prev_expense) * 100).toFixed(1)
+    : '0.0';
+  
+  const isIncrease = data.difference > 0;
+  const boxColor = isIncrease ? [254, 226, 226] : [220, 252, 231];
+  
+  doc.setFillColor(boxColor[0], boxColor[1], boxColor[2]);
+  doc.roundedRect(20, 200, 170, 35, 3, 3, 'F');
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Diferencia absoluta:', 25, 212);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(isIncrease ? 220 : 22, isIncrease ? 38 : 163, isIncrease ? 38 : 74);
+  doc.text(formatCurrency(Math.abs(data.difference)), 185, 212, { align: 'right' });
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Variación porcentual:', 25, 224);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(isIncrease ? 220 : 22, isIncrease ? 38 : 163, isIncrease ? 38 : 74);
+  doc.text(`${isIncrease ? '+' : ''}${diffPercentage}%`, 185, 224, { align: 'right' });
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Interpretación', 20, 250);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  if (isIncrease) {
+    doc.text(`Tus gastos aumentaron ${diffPercentage}% respecto al mes anterior.`, 25, 262);
+    doc.text('Considera revisar dónde incrementaste el gasto y si fue justificado.', 25, 272);
+  } else if (data.difference < 0) {
+    doc.text(`Felicitaciones! Redujiste tus gastos en ${Math.abs(parseFloat(diffPercentage))}%.`, 25, 262);
+    doc.text('Continúa con estos buenos hábitos de control financiero.', 25, 272);
+  } else {
+    doc.text('Tus gastos se mantuvieron estables respecto al mes anterior.', 25, 262);
+    doc.text('Mantén el control y busca oportunidades de optimización.', 25, 272);
+  }
+  
+  addFooter(doc);
+  doc.save(`FinSight_Reporte_Comparativo_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+export const generateHabitsPDF = async (data: HabitsReport): Promise<void> => {
+  const doc = new jsPDF();
+  
+  addHeader(doc, 'Reporte de Hábitos de Gasto');
+  
+  doc.setTextColor(0, 0, 0);
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Días con Mayor Gasto', 20, 60);
+  
+  doc.setFillColor(252, 231, 243);
+  doc.roundedRect(20, 70, 170, 30, 3, 3, 'F');
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  
+  if (data.top_days && data.top_days.length > 0) {
+    const daysText = data.top_days.join(', ');
+    doc.text(`Los días ${daysText} del mes son cuando más gastas.`, 25, 82);
+    doc.text('Planifica mejor tus compras para estos días críticos.', 25, 92);
+  } else {
+    doc.text('No hay suficientes datos para identificar patrones de días.', 25, 87);
+  }
+  
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Gastos Más Frecuentes', 20, 115);
+  
+  const tableData: any[] = [];
+  
+  if (data.repeated_expenses && Object.keys(data.repeated_expenses).length > 0) {
+    Object.entries(data.repeated_expenses)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([description, count]) => {
+        tableData.push([description, `${count} veces`]);
+      });
+  }
+  
+  if (tableData.length > 0) {
+    autoTable(doc, {
+      startY: 125,
+      head: [['Descripción del Gasto', 'Frecuencia']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [236, 72, 153],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 11
+      },
+      bodyStyles: {
+        fontSize: 10
+      },
+      alternateRowStyles: {
+        fillColor: [252, 231, 243]
+      },
+      margin: { left: 20, right: 20 }
+    });
+  } else {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('No se encontraron gastos repetidos en este período.', 25, 135);
+  }
+  
+  const recY = tableData.length > 0 ? (doc as any).lastAutoTable.finalY + 15 : 150;
+  
+  doc.setFillColor(240, 253, 244);
+  doc.roundedRect(20, recY, 170, 60, 3, 3, 'F');
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 163, 74);
+  doc.text('Recomendaciones de Hábitos', 25, recY + 12);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(0, 0, 0);
+  
+  if (data.top_days && data.top_days.length > 0) {
+    doc.text('Establece presupuestos diarios más estrictos para tus días críticos.', 25, recY + 24);
+  }
+  
+  if (tableData.length > 0) {
+    doc.text('Considera suscripciones o compras al por mayor para gastos frecuentes.', 25, recY + 34);
+    doc.text('Evalúa si todos tus gastos repetidos son realmente necesarios.', 25, recY + 44);
+  } else {
+    doc.text('Mantén un registro detallado para identificar patrones futuros.', 25, recY + 24);
+  }
+  
+  addFooter(doc);
+  doc.save(`FinSight_Reporte_Habitos_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
+
+./tsconfig.app.json:
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
+
+
+
+./tsconfig.json:
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+}
+
+
+
+./tsconfig.node.json:
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["vite.config.ts"]
+}
+
+
+
+./vite.config.ts:
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react-swc'
+import tailwindcss from '@tailwindcss/vite'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [tailwindcss(), react()],
+})
+
+
+

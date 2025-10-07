@@ -1,0 +1,49 @@
+.
+├── README.md
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+├── public
+│   └── vite.svg
+├── src
+│   ├── App.css
+│   ├── App.tsx
+│   ├── assets
+│   │   └── react.svg
+│   ├── components
+│   │   ├── Alerts.tsx
+│   │   ├── Charts
+│   │   │   ├── BarChart.tsx
+│   │   │   ├── LineChart.tsx
+│   │   │   └── PieChart.tsx
+│   │   ├── Dashboard.tsx
+│   │   ├── Layout.tsx
+│   │   ├── Navbar.tsx
+│   │   ├── Reports.tsx
+│   │   ├── TransactionForm.tsx
+│   │   └── TransactionList.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   ├── pages
+│   │   ├── AboutPage.tsx
+│   │   ├── DashboardPage.tsx
+│   │   ├── ReportsPage.tsx
+│   │   └── TransactionsPage.tsx
+│   ├── store
+│   │   ├── index.ts
+│   │   └── slices
+│   │       ├── alertSlice.ts
+│   │       └── transactionSlices.ts
+│   ├── types
+│   │   └── index.ts
+│   └── utils
+│       ├── categories.ts
+│       └── pdfGenerator.ts
+├── tree.txt
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
+
+11 directories, 36 files
