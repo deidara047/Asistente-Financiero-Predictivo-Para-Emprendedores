@@ -1,4 +1,3 @@
-```markdown
 # Asistente Financiero Predictivo Para Emprendedores
 
 Una simple aplicación para gestionar finanzas personales hecha con las opciones para frontend React, Next.js y backend Flask.
@@ -237,4 +236,3 @@ Para ver más detalles de la interfaz, consulta las imágenes en la carpeta `img
 ## Licencia
 
 Este proyecto fue desarrollado como parte de un curso de análisis de datos y machine learning.
-```
