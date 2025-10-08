@@ -20,10 +20,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Cargar estado de alertas desde localStorage al montar
   useEffect(() => {
     setMounted(true);
-    const stored = localStorage.getItem('isAlertsOpen');
-    if (stored !== null) {
-      setIsAlertsOpen(JSON.parse("true"));
-    }
+    setIsAlertsOpen(JSON.parse("true"));
   }, []);
 
   // Guardar estado de alertas en localStorage cuando cambie
