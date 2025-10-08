@@ -1,6 +1,6 @@
-# Gestor de Finanzas Personales
+# Asistente Financiero Predictivo Para Emprendedores
 
-Un sistema integral de gestión de finanzas personales que ayuda a los usuarios a rastrear ingresos y gastos, analizar patrones de gasto y recibir alertas inteligentes sobre sus hábitos financieros.
+Una simple aplicación para gestionar finanzas personales hecha con las opciones para frontend React, Next.js y backend Flask.
 
 ## Descripción General
 
