@@ -354,6 +354,7 @@ export const generateComparativePDF = async (data: ComparativeReport): Promise<v
   doc.setFontSize(10);
   doc.text('Mes Anterior', 65, barY + barHeight + 10, { align: 'center' });
   doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
   doc.text(formatCurrency(data.prev_expense), 65, barY + barHeight + 18, { align: 'center' });
   
   const currHeight = (data.current_expense / maxAmount) * barHeight;
@@ -501,7 +502,7 @@ export const generateHabitsPDF = async (data: HabitsReport): Promise<void> => {
   
   if (tableData.length > 0) {
     doc.text('Considera suscripciones o compras al por mayor para gastos frecuentes.', 25, recY + 34);
-    doc.text('Evalúa si todos tus gastos repetidos son realmente necesarios.', 25, recY + 44);
+    doc.text('Evaliza si todos tus gastos repetidos son realmente necesarios.', 25, recY + 44);
   } else {
     doc.text('Mantén un registro detallado para identificar patrones futuros.', 25, recY + 24);
   }

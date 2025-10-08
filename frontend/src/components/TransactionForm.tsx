@@ -3,110 +3,252 @@
 import { useState } from 'react';
 import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
-import { categorizeTransaction } from '@/utils/categories';
-import { addTransaction } from '@/utils/actions';
 import { useGlobalContext } from '@/context/GlobalContext';
+import { FaMoneyBillWave, FaEdit, FaCalendarAlt, FaCheck } from 'react-icons/fa';
 
 const MySwal = withReactContent(Swal);
 
 const TransactionForm: React.FC = () => {
   const { setTransactions } = useGlobalContext();
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [date, setDate] = useState('');
-  const [category, setCategory] = useState('');
+  const [amount, setAmount] = useState<number>(0);
+  const [description, setDescription] = useState<string>('');
+  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [type, setType] = useState<'income' | 'expense'>('expense');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!description || !amount || !date) {
+    if (amount <= 0 || !description) {
       MySwal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'Por favor, completa todos los campos requeridos.',
+        text: 'El monto debe ser mayor a 0 y la descripción es obligatoria.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
       });
       return;
     }
 
-    const formData = new FormData();
-    formData.append('description', description);
-    formData.append('amount', amount);
-    formData.append('date', date);
-    const inferredCategory = category || categorizeTransaction(description) || 'Sin categoría';
-    formData.append('category', inferredCategory);
+    setIsLoading(true);
 
-    const result = await addTransaction(formData);
+    const newTransaction = {
+      amount,
+      description,
+      date,
+      type,
+      id: Date.now(),
+      category: 'Pendiente',
+    };
 
-    if (result.success) {
+    setTransactions((prev: any[]) => [...prev, newTransaction]);
+
+    try {
+      const API_BASE = 'http://localhost:5000';
+      const res = await fetch(`${API_BASE}/transaction`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: newTransaction.type === 'income' ? 'ingreso' : 'gasto',
+          amount: newTransaction.amount,
+          description: newTransaction.description,
+          date: newTransaction.date,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error('Failed to add transaction');
+      }
       MySwal.fire({
         icon: 'success',
-        title: 'Éxito',
-        text: result.message,
+        title: '¡Éxito!',
+        text: 'Transacción agregada correctamente.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
+        timer: 2000,
       });
-      setTransactions((prev) => [...prev, result.transaction]);
+
+      setAmount(0);
       setDescription('');
-      setAmount('');
-      setDate('');
-      setCategory('');
-    } else {
+      setDate(new Date().toISOString().split('T')[0]);
+    } catch (error) {
       MySwal.fire({
         icon: 'error',
         title: 'Error',
-        text: result.message,
+        text: 'Ocurrió un error al agregar la transacción. Intenta de nuevo.',
+        confirmButtonColor: '#3b82f6',
+        confirmButtonText: 'Aceptar',
       });
+      console.error('Error adding transaction:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '' || value === '0') {
+      setAmount(0);
+    } else {
+      const numValue = parseFloat(value) || 0;
+      setAmount(numValue >= 0 ? numValue : 0);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-md space-y-4">
-      <h2 className="text-xl font-semibold">Agregar Transacción</h2>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Descripción</label>
-        <input
-          type="text"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 border rounded-md"
-          required
-        />
+    <div className="bg-white rounded-xl shadow-lg border-2 border-gray-100 p-6 hover:shadow-xl transition-shadow duration-300">
+      {/* Encabezado */}
+      <div className="mb-6 pb-4 border-b-2 border-blue-100">
+        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+          <FaEdit className="text-3xl" />
+          Registrar Transacción
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">Completa los datos de tu movimiento financiero</p>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Monto</label>
-        <input
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full p-2 border rounded-md"
-          step="0.01"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Fecha</label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full p-2 border rounded-md"
-          required
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Categoría (opcional)</label>
-        <input
-          type="text"
-          value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="w-full p-2 border rounded-md"
-        />
-      </div>
-      <button
-        type="submit"
-        className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors"
-      >
-        Agregar
-      </button>
-    </form>
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Tipo */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Tipo de transacción
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setType('income')}
+              disabled={isLoading}
+              className={`relative py-4 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                type === 'income'
+                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg scale-105 ring-4 ring-green-200'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <FaMoneyBillWave className="text-2xl" />
+                <span>Ingreso</span>
+              </div>
+              {type === 'income' && (
+                <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                  <FaCheck className="text-green-600 text-xs" />
+                </div>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setType('expense')}
+              disabled={isLoading}
+              className={`relative py-4 px-4 rounded-xl font-semibold transition-all duration-300 ${
+                type === 'expense'
+                  ? 'bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg scale-105 ring-4 ring-red-200'
+                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-2 border-gray-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              <div className="flex flex-col items-center gap-1">
+                <FaMoneyBillWave className="text-2xl" />
+                <span>Gasto</span>
+              </div>
+              {type === 'expense' && (
+                <div className="absolute top-2 right-2 bg-white rounded-full p-1">
+                  <FaCheck className="text-red-600 text-xs" />
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Monto */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <FaMoneyBillWave className="inline mr-1" /> Monto
+          </label>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-500 text-xl font-bold">
+              $
+            </span>
+            <input
+              type="number"
+              value={amount === 0 ? '' : amount}
+              onChange={handleAmountChange}
+              placeholder="0.00"
+              step="0.01"
+              min="0"
+              required
+              disabled={isLoading}
+              className="w-full py-4 pl-12 pr-4 text-lg font-semibold border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+
+        {/* Descripción */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <FaEdit className="inline mr-1" /> Descripción
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Ej: Compra de supermercado"
+            required
+            disabled={isLoading}
+            className="w-full py-4 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+          />
+        </div>
+
+        {/* Fecha */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <FaCalendarAlt className="inline mr-1" /> Fecha
+          </label>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            disabled={isLoading}
+            className="w-full py-4 px-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
+          />
+        </div>
+
+        {/* Botón de envío */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full py-4 px-4 text-white font-bold text-lg rounded-xl transition-all duration-300 flex justify-center items-center ${
+            isLoading
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:scale-105 active:scale-95'
+          }`}
+        >
+          {isLoading ? (
+            <>
+              <svg className="animate-spin h-6 w-6 mr-3" viewBox="0 0 24 24">
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              Agregando...
+            </>
+          ) : (
+            <>
+              <FaCheck className="mr-2 text-xl" />
+              Agregar Transacción
+            </>
+          )}
+        </button>
+      </form>
+    </div>
   );
 };
 

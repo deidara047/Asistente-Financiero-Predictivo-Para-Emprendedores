@@ -4,6 +4,7 @@ from faker import Faker
 import random
 from datetime import datetime, timedelta
 import time
+import calendar
 
 fake = Faker('es_ES')
 
@@ -73,8 +74,15 @@ def generate_realistic_transaction(month_offset=0, transaction_type=None, force_
         target_month += 12
         target_year -= 1
     
-    # Día aleatorio del mes
-    max_day = 28 if target_month == 2 else 30
+    # Determinar el último día válido del mes
+    if month_offset == 0:
+        # Para el mes actual, usar el día de hoy como máximo
+        max_day = today.day
+    else:
+        # Para meses pasados, usar el último día del mes
+        max_day = calendar.monthrange(target_year, target_month)[1]
+    
+    # Día aleatorio del mes (solo hasta el día válido)
     day = random.randint(1, max_day)
     date = f"{target_year}-{target_month:02d}-{day:02d}"
     

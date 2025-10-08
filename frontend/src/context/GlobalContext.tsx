@@ -14,7 +14,24 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isAlertsOpen, setIsAlertsOpen] = useState(false);
+  const [isAlertsOpen, setIsAlertsOpen] = useState(true); // ✅ Cambiado a true
+  const [mounted, setMounted] = useState(false);
+
+  // Cargar estado de alertas desde localStorage al montar
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem('isAlertsOpen');
+    if (stored !== null) {
+      setIsAlertsOpen(JSON.parse(stored));
+    }
+  }, []);
+
+  // Guardar estado de alertas en localStorage cuando cambie
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem('isAlertsOpen', JSON.stringify(isAlertsOpen));
+    }
+  }, [isAlertsOpen, mounted]);
 
   const toggleAlerts = () => setIsAlertsOpen((prev) => !prev);
 
