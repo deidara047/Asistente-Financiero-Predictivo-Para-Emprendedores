@@ -14,7 +14,7 @@ const GlobalContext = createContext<GlobalContextType | undefined>(undefined);
 
 export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isAlertsOpen, setIsAlertsOpen] = useState(true); // ✅ Cambiado a true
+  const [isAlertsOpen, setIsAlertsOpen] = useState(true);
   const [mounted, setMounted] = useState(false);
 
   // Cargar estado de alertas desde localStorage al montar
@@ -22,7 +22,7 @@ export const GlobalProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setMounted(true);
     const stored = localStorage.getItem('isAlertsOpen');
     if (stored !== null) {
-      setIsAlertsOpen(JSON.parse(stored));
+      setIsAlertsOpen(JSON.parse("true"));
     }
   }, []);
 
