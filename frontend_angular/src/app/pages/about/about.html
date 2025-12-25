@@ -1,0 +1,30 @@
+<div class="space-y-8 py-8 px-4 sm:px-6 lg:px-8">
+  <h1 class="text-3xl font-bold text-center text-blue-600 tracking-wide">
+    Acerca de FinSight
+  </h1>
+  
+  <div class="max-w-4xl mx-auto">
+    @for (section of sections; track section.title) {
+      <section class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300 border border-gray-100 mb-6">
+        <div class="flex items-center mb-4">
+          <span class="material-icons text-blue-600 mr-3">{{ section.icon }}</span>
+          <h2 class="text-xl font-semibold text-gray-900">{{ section.title }}</h2>
+        </div>
+
+        @if (section.content) {
+          <p class="text-gray-600 text-lg">
+            {{ section.content }}
+          </p>
+        }
+
+        @if (section.items) {
+          <ul class="text-gray-600 text-lg space-y-2 list-disc list-inside">
+            @for (item of section.items; track item) {
+              <li>{{ item }}</li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </div>
+</div>

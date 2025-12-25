@@ -1,0 +1,191 @@
+<div class="space-y-8 py-8 px-4 sm:px-6 lg:px-8">
+  <!-- Header -->
+  <div class="max-w-7xl mx-auto">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-4xl font-bold text-gray-900">Transacciones</h1>
+        <p class="text-gray-600 mt-2">Gestiona tus ingresos y gastos</p>
+      </div>
+      <button
+        (click)="showForm.set(!showForm())"
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+        Agregar Transacción
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  @if (error()) {
+    <div class="max-w-7xl mx-auto">
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-600">{{ error() }}</p>
+      </div>
+    </div>
+  }
+
+  <div class="max-w-7xl mx-auto">
+    <!-- Add Transaction Form -->
+    @if (showForm()) {
+      <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Nueva Transacción</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Date -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha</label>
+            <input
+              type="date"
+              [value]="formData().date"
+              (change)="onDateChange($event)"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- Type -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+            <select
+              [value]="formData().type"
+              (change)="onTypeChange($event)"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="expense">Gasto</option>
+              <option value="income">Ingreso</option>
+            </select>
+          </div>
+
+          <!-- Category -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
+            <select
+              [value]="formData().category"
+              (change)="onCategoryChange($event)"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Selecciona una categoría</option>
+              @for (cat of categories; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Amount -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Monto</label>
+            <input
+              type="number"
+              [value]="formData().amount"
+              (change)="onAmountChange($event)"
+              step="0.01"
+              min="0"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <!-- Description (Full Width) -->
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+            <input
+              type="text"
+              [value]="formData().description"
+              (change)="onDescriptionChange($event)"
+              placeholder="Opcional"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        <!-- Form Buttons -->
+        <div class="flex gap-4 mt-6">
+          <button
+            (click)="submitForm()"
+            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+            Guardar
+          </button>
+          <button
+            (click)="resetForm()"
+            class="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors font-medium">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+          <input
+            type="text"
+            [value]="searchTerm()"
+            (input)="onSearchTermChange($event)"
+            placeholder="Categoría o descripción..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <!-- Filter by Type -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+          <select
+            [value]="filterType()"
+            (change)="onFilterTypeChange($event)"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="all">Todas</option>
+            <option value="income">Ingresos</option>
+            <option value="expense">Gastos</option>
+          </select>
+        </div>
+
+        <!-- Results count -->
+        <div class="flex items-end">
+          <div class="text-sm text-gray-600">
+            {{ filteredTransactions.length }} transacción(es)
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions List -->
+    @if (!isLoading()) {
+      @if (filteredTransactions.length > 0) {
+        <div class="space-y-4">
+          @for (transaction of filteredTransactions; track transaction.id) {
+            <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 hover:shadow-lg transition-shadow">
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-4">
+                    <div class="flex-shrink-0">
+                      <span class="material-icons text-2xl" [ngClass]="getTypeColor(transaction.type)">
+                        {{ transaction.type === 'income' ? 'trending_up' : 'trending_down' }}
+                      </span>
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-lg font-semibold text-gray-900">{{ transaction.category }}</p>
+                      <p class="text-sm text-gray-600">{{ transaction.description }}</p>
+                      <p class="text-xs text-gray-500 mt-1">{{ formatDate(transaction.date) }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="text-2xl font-bold" [ngClass]="getTypeColor(transaction.type)">
+                    {{ formatCurrency(transaction.amount, transaction.type) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="bg-white rounded-xl shadow-md p-12 border border-gray-100 text-center">
+          <span class="material-icons text-5xl text-gray-400 block mb-4">receipt_long</span>
+          <p class="text-gray-600 text-lg">No hay transacciones que coincidan</p>
+          <p class="text-gray-500 text-sm mt-2">Intenta cambiar los filtros o agregar una nueva transacción</p>
+        </div>
+      }
+    } @else {
+      <div class="text-center py-12">
+        <div class="inline-block">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+        <p class="text-gray-600 mt-4">Cargando transacciones...</p>
+      </div>
+    }
+  </div>
+</div>
