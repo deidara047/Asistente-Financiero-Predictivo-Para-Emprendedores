@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { FaUsers, FaChartBar, FaShieldAlt, FaLightbulb } from 'react-icons/fa';
+import { FaChartBar, FaShieldAlt, FaLightbulb } from 'react-icons/fa';
 
 export const metadata: Metadata = {
   title: 'FinSight - Acerca de',
